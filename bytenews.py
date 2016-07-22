@@ -8,6 +8,7 @@ from datetime import datetime
 from bs4 import BeautifulSoup
 
 import requests
+import pyperclip
 
 def blog():
     ''' Reads feed from bytespeicher.org, extracts article titles,
@@ -18,6 +19,7 @@ def blog():
     soup = BeautifulSoup(html_source, 'lxml-xml')
 
     items = soup.channel.find_all('item')
+    output = ""
     for item in items:
         title = item.title.string
         date_str_long = item.pubDate.string
@@ -29,10 +31,18 @@ def blog():
         print('* ' + title + ' ('+date.strftime('%d %b')+')')
         print(link)
 
+        output += '* ' + title + ' ('+date.strftime('%d %b')+')\n'+link+'\n'
+
+    return output
+
 
 def main():
     ''' call all subfunctions to generate content '''
-    blog()
+    output = '##[BLOG]\n'
+    output += blog()
+    output += '\n\n'
+
+    pyperclip.copy(output)
 
 
 if __name__ == '__main__':
