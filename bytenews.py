@@ -5,11 +5,11 @@ Created on Fri Jul 22 21:18:26 2016
 @author: Chaos
 """
 from datetime import datetime
-from bs4 import BeautifulSoup
+import re
 
+from bs4 import BeautifulSoup
 import requests
 import pyperclip
-import re
 
 def blog():
     ''' Reads feed from bytespeicher.org, extracts article titles,
@@ -45,33 +45,32 @@ def wiki():
     html_source = website.text
     soup = BeautifulSoup(html_source, 'lxml')
 
-    output = soup.prettify()
-    
     forms = soup.find_all('form')
     items = forms[1].find_all('li')
-    
-    changes = {}    
-    
+    output = ''
+
     for item in items:
-        print('=============================================================')
-        link = item.find_all('a', re.compile('wikilink.*'))     
-        print(link[0]['href'])
+        output += '* '
+        link = item.find_all('a', re.compile('wikilink.*'))
+        output += link[0]['href']
+
+        linkdiff = item.find_all('a', 'diff_link')
         spans = item.find_all('span')
-        values= []
-        for span in spans:
-          for strings in span.stripped_strings:
-              values.append(strings)
-              values.append(1)
-              
-        if link[0] not in changes:
-          changes[link[0]['href']] = values
-        else:
-            changes[link[0]['href']][1] += values[1]
-            changes[link[0]['href']][3] += 1
-        
-    for c,v in changes.items():   
-        print(c)
-        print(v)
+
+        output += " ("
+        date_str = list(spans[0].stripped_strings)[0]
+        date = datetime.strptime(date_str, '%d.%m.%Y %H:%M')
+
+        comment = list(spans[1].stripped_strings)[0]
+        user = list(spans[2].stripped_strings)[0]
+
+        output += date.strftime('%d %b') + ' ' + comment + ' ' + user
+
+        output += ")\n"
+
+        output += 'https://technikkultur-erfurt.de/' + link[0]['href'] + '\n'
+        output += 'DELETEME: ' + 'https://technikkultur-erfurt.de/' + linkdiff[0]['href'] + '\n\n'
+
     #print(soup.body.contents)
     #print(soup.body.div.contents)
     #body.div.main.article.div.div.div.form.div.ul.li)
@@ -95,12 +94,14 @@ def wiki():
 def main():
     ''' call all subfunctions to generate content '''
     output = '##[BLOG]\n'
-    #output += blog()
+    output += blog()
     output += '\n\n'
 
-    output = wiki()
-    
-   # print(output)
+    output = '##[WIKI]\n'
+    output += wiki()
+    output += '\n\n'
+
+    print(output)
 
     pyperclip.copy(output)
 
