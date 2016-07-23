@@ -69,6 +69,11 @@ def wiki():
             break
 
         comment = list(spans[1].stripped_strings)[0]
+        if comment == "– gelöscht":
+            stub = output.rfind('*')
+            output = output[:stub]
+            continue
+        
         user = list(spans[2].stripped_strings)[0]
 
         output += date.strftime('%d %b') + ' ' + comment + ' ' + user
