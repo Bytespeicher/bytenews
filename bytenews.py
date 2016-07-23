@@ -11,6 +11,8 @@ from bs4 import BeautifulSoup
 import requests
 import pyperclip
 
+LAST_NEWSLETTER = datetime.strptime('01.01.2015', '%d.%m.%Y')
+
 def blog():
     ''' Reads feed from bytespeicher.org, extracts article titles,
     dates and links. Stops before last Bytespeicher Notizen.
@@ -61,6 +63,11 @@ def wiki():
         date_str = list(spans[0].stripped_strings)[0]
         date = datetime.strptime(date_str, '%d.%m.%Y %H:%M')
 
+        if date < LAST_NEWSLETTER:
+            stub = output.rfind('*')
+            output = output[:-stub]
+            break
+
         comment = list(spans[1].stripped_strings)[0]
         user = list(spans[2].stripped_strings)[0]
 
@@ -70,6 +77,12 @@ def wiki():
 
         output += 'https://technikkultur-erfurt.de/' + link[0]['href'] + '\n'
         output += 'DELETEME: ' + 'https://technikkultur-erfurt.de/' + linkdiff[0]['href'] + '\n\n'
+
+##ToDo: sumarize als unreported changes into one difflink
+#        diffwebsite = requests.get("https://technikkultur-erfurt.de/" + linkdiff[0]['href'])
+#        diffhtml_source = website.text
+#        diffsoup = BeautifulSoup(html_source, 'lxml')
+
 
     #print(soup.body.contents)
     #print(soup.body.div.contents)
@@ -92,6 +105,11 @@ def wiki():
 
 
 def main():
+
+
+#ToDo
+#    set last_newsletter from either command line argument or from reading blog history
+
     ''' call all subfunctions to generate content '''
     output = '##[BLOG]\n'
     output += blog()
@@ -101,9 +119,20 @@ def main():
     output += wiki()
     output += '\n\n'
 
+##ToDo:
+#    output = '##[REDMINE]\n'
+#    output += redmine()
+#    output += '\n\n'
+#
+#    output = '##[MAILINGLISTE]\n'
+#    output += mail()
+#    output += '\n\n'
+
     print(output)
 
     pyperclip.copy(output)
+
+    #ToDo: write directly to etherpad
 
 
 if __name__ == '__main__':
