@@ -10,7 +10,24 @@ import re
 from bs4 import BeautifulSoup
 import requests
 import pyperclip
+import pytz
 
+
+TZ = pytz.timezone('Europe/Berlin')
+
+def getStopDate():
+    ''' reads the category feed for bytespeicher notizen and gets the last publication date '''  
+    
+    website = requests.get('https://bytespeicher.org/category/bytespeicher-notizen/feed/')
+    html_source = website.text
+    soup = BeautifulSoup(html_source, 'lxml-xml')
+    
+    datexml = soup.find('item').find('pubDate') 
+    
+    stop = datetime.strptime(datexml.string, '%a, %d %b %Y %H:%M:%S %z')
+    
+    return stop
+    
 
 def blog():
     ''' Reads feed from bytespeicher.org, extracts article titles,
@@ -62,7 +79,7 @@ def wiki(stop_date):
         date_str = list(spans[0].stripped_strings)[0]
         date = datetime.strptime(date_str, '%d.%m.%Y %H:%M')
 
-        if date < stop_date:
+        if TZ.localize(date) < stop_date:
             stub = output.rfind('*')
             output = output[:stub]
             break
@@ -131,7 +148,7 @@ def redmine(stop_date):
     for t in all_tickets:
         output += "* " + t[1] + ': ' + t[3] + ' ' + t[2] + ' (' + t[4] + ', ' + t[5].strftime('%d %b') + ')\n'
         output += "https://redmine.bytespeicher.org" + t[0] + '\n\n'
-        if t[5] < stop_date:
+        if TZ.localize(t[5]) < stop_date:
             stub = output.rfind('*')
             output = output[:stub]
             break
@@ -142,10 +159,7 @@ def redmine(stop_date):
 
 def main():
     
-    stop_date = datetime.strptime("14. Apr 2016", "%d. %b %Y")
-
-#ToDo
-#    set last_newsletter from either command line argument or from reading blog history
+    stop_date = getStopDate()
 
     ''' call all subfunctions to generate content '''
     output = '##[BLOG]\n'
