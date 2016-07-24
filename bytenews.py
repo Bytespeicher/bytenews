@@ -65,7 +65,7 @@ def wiki():
 
         if date < LAST_NEWSLETTER:
             stub = output.rfind('*')
-            output = output[:-stub]
+            output = output[:stub]
             break
 
         comment = list(spans[1].stripped_strings)[0]
