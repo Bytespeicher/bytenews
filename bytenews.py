@@ -11,7 +11,6 @@ from bs4 import BeautifulSoup
 import requests
 import pyperclip
 
-LAST_NEWSLETTER = datetime.strptime('01.01.2015', '%d.%m.%Y')
 
 def blog():
     ''' Reads feed from bytespeicher.org, extracts article titles,
@@ -39,7 +38,7 @@ def blog():
     return output
 
 
-def wiki():
+def wiki(stop_date):
     ''' Reads changes technikkultur-erfurt.de, extracts changes + comments,
     dates and links. Stops before date of last Bytespeicher Notizen.
     '''
@@ -63,7 +62,7 @@ def wiki():
         date_str = list(spans[0].stripped_strings)[0]
         date = datetime.strptime(date_str, '%d.%m.%Y %H:%M')
 
-        if date < LAST_NEWSLETTER:
+        if date < stop_date:
             stub = output.rfind('*')
             output = output[:stub]
             break
@@ -109,7 +108,7 @@ def wiki():
     return output
 
 
-def redmine():
+def redmine(stop_date):
     ''' read redmine site to get tickets modified since last notizen '''
 
     output = ""
@@ -132,7 +131,7 @@ def redmine():
     for t in all_tickets:
         output += "* " + t[1] + ': ' + t[3] + ' ' + t[2] + ' (' + t[4] + ', ' + t[5].strftime('%d %b') + ')\n'
         output += "https://redmine.bytespeicher.org" + t[0] + '\n\n'
-        if t[5] < LAST_NEWSLETTER:
+        if t[5] < stop_date:
             stub = output.rfind('*')
             output = output[:stub]
             break
@@ -142,6 +141,8 @@ def redmine():
 
 
 def main():
+    
+    stop_date = datetime.strptime("14. Apr 2016", "%d. %b %Y")
 
 #ToDo
 #    set last_newsletter from either command line argument or from reading blog history
@@ -152,11 +153,11 @@ def main():
     output += '\n\n'
 
     output += '##[WIKI]\n'
-    output += wiki()
+    output += wiki(stop_date)
     output += '\n\n'
 
     output += '##[REDMINE]\n'
-    output += redmine()
+    output += redmine(stop_date)
     output += '\n\n'
 
 ##ToDo:
