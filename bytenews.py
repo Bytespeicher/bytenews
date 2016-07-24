@@ -30,7 +30,6 @@ def getStopDate():
     
     return stop
     
-
 def blog():
     ''' Reads feed from bytespeicher.org, extracts article titles,
     dates and links. Stops before last Bytespeicher Notizen.
@@ -105,31 +104,27 @@ def wiki(stop_date):
         output += ")\n"
 
         output += 'https://technikkultur-erfurt.de/' + link[0]['href'] + '\n'
-#        output += 'DELETEME: ' + 'https://technikkultur-erfurt.de/' + linkdiff[0]['href'] + '\n'
 
-##ToDo: sumarize als unreported changes into one difflink
-#        diffwebsite = requests.get("https://technikkultur-erfurt.de/" + linkdiff[0]['href'])
-#        diffhtml_source = website.text
-#        diffsoup = BeautifulSoup(html_source, 'lxml')
+#ToDo: sumarize als unreported changes into one difflink
+        diffwebsite = requests.get("https://technikkultur-erfurt.de/" + link[0]['href'] + '?do=revisions' )
+        diffhtml_source = diffwebsite.text
+        print("https://technikkultur-erfurt.de/" + link[0]['href']  + '?do=revisions')
+        
+        pyperclip.copy(diffhtml_source)
+        
+        diffsoup = BeautifulSoup(diffhtml_source, 'lxml')
 
+        changes = diffsoup.find_all('div', 'li' )
+        difflink = ''
+        for i, c in enumerate(changes):
+            date = c.span.string
+            if datetime.strptime(date.strip(), '%d.%m.%Y %H:%M') < LAST_NEWSLETTER:
+                break
+            if i != 0:
+                difflink = c.find('a', 'diff_link')['href']
+                        
+        output += 'DELETEME: ' + 'https://technikkultur-erfurt.de/'+ difflink +'\n\n'
 
-    #print(soup.body.contents)
-    #print(soup.body.div.contents)
-    #body.div.main.article.div.div.div.form.div.ul.li)
-#    items = soup.channel.find_all('item')
-#    output = ""
-#    for item in items:
-#        title = item.title.string
-#        date_str_long = item.pubDate.string
-#        link = item.link.string
-#        if "Bytespeicher Wochennotizen" in title:
-#            break
-#        date = datetime.strptime(date_str_long, '%a, %d %b %Y %H:%M:%S %z')
-#
-#        print('* ' + title + ' ('+date.strftime('%d %b')+')')
-#        print(link)
-#
-#        output += '* ' + title + ' ('+date.strftime('%d %b')+')\n'+link+'\n'
     return output
 
 
