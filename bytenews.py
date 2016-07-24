@@ -6,6 +6,7 @@ Created on Fri Jul 22 21:18:26 2016
 """
 from datetime import datetime
 import re
+import locale
 
 from bs4 import BeautifulSoup
 import requests
@@ -24,6 +25,7 @@ def getStopDate():
     
     datexml = soup.find('item').find('pubDate') 
     
+    locale.setlocale(locale.LC_TIME, 'eng_us')
     stop = datetime.strptime(datexml.string, '%a, %d %b %Y %H:%M:%S %z')
     
     return stop
@@ -70,6 +72,12 @@ def wiki(stop_date):
     for item in items:
         output += '* '
         link = item.find_all('a', re.compile('wikilink.*'))
+        
+        if '/freifunk:' in link[0]['href']:
+            stub = output.rfind('*')
+            output = output[:stub]
+            continue
+        
         output += link[0]['href']
 
         linkdiff = item.find_all('a', 'diff_link')
@@ -97,7 +105,7 @@ def wiki(stop_date):
         output += ")\n"
 
         output += 'https://technikkultur-erfurt.de/' + link[0]['href'] + '\n'
-        output += 'DELETEME: ' + 'https://technikkultur-erfurt.de/' + linkdiff[0]['href'] + '\n\n'
+#        output += 'DELETEME: ' + 'https://technikkultur-erfurt.de/' + linkdiff[0]['href'] + '\n'
 
 ##ToDo: sumarize als unreported changes into one difflink
 #        diffwebsite = requests.get("https://technikkultur-erfurt.de/" + linkdiff[0]['href'])
@@ -147,7 +155,7 @@ def redmine(stop_date):
     
     for t in all_tickets:
         output += "* " + t[1] + ': ' + t[3] + ' ' + t[2] + ' (' + t[4] + ', ' + t[5].strftime('%d %b') + ')\n'
-        output += "https://redmine.bytespeicher.org" + t[0] + '\n\n'
+        output += "https://redmine.bytespeicher.org" + t[0] + '\n'
         if TZ.localize(t[5]) < stop_date:
             stub = output.rfind('*')
             output = output[:stub]
@@ -157,31 +165,80 @@ def redmine(stop_date):
     return output
 
 
-def main():
+def is_not_more_tag(attr):
+    if attr == '#':
+        return False
+    else:
+        return True
+
+
+
+def mail(stop_date):
+    ''' reads the mailman archives to get active discussions since last publication '''    
+    output = ""
     
+    
+    website = requests.get("https://lists.bytespeicher.org/archives/list/bytespeicher%40lists.bytespeicher.org/")
+    html_source = website.text
+    soup = BeautifulSoup(html_source, 'lxml')
+#    pyperclip.copy(html_source)
+
+    section = soup.find('section', id='most-recent')
+    fields = section.find_all('a', href=is_not_more_tag)
+    import pprint
+    pp = pprint.PrettyPrinter(indent=4)
+#    pp.pprint([a if not a.h5 else '' for a in fields])
+
+    links = [a['href'] for a in fields]
+    topics = [a.h5 for a in fields]
+    datestr = [list(a.div.stripped_strings)[0].replace('nachm.', '').replace('vorm.', '')[:-1] for a in fields]
+    
+    pp.pprint(datestr)    
+    locale.setlocale(locale.LC_TIME, 'deu_deu')
+
+    dates = [datetime.strptime(s, '%a %b %d, %H:%M') for s in datestr]
+    locale.setlocale(locale.LC_TIME, 'eng_us')
+
+#    pp.pprint([a if a else 'FAILFAILFAIL=======================================' for a in topics])
+    
+    all_mail = list(zip(links, topics, dates))
+    
+    for m in all_mail:
+#        output += "* " + m[1] + ': ' + m[3] + ' ' + m[2] + ' (' + m[4] + ', ' + m[5].strftime('%d %b') + ')\n'
+#        output += "https://redmine.bytespeicher.org" + m[0] + '\n'
+        output += "* " + list(m[1].stripped_strings)[1] + '(' + m[2].strftime('%d %b') + ')\n'
+        output += 'https://lists.bytespeicher.org' + m[0] + '\n'
+#        if TZ.localize(m[5]) < stop_date:
+#            stub = output.rfind('*')
+#            output = output[:stub]
+#            break
+    return(output)
+
+
+def main():
+        
     stop_date = getStopDate()
 
     ''' call all subfunctions to generate content '''
     output = '##[BLOG]\n'
-    output += blog()
-    output += '\n\n'
-
-    output += '##[WIKI]\n'
-    output += wiki(stop_date)
-    output += '\n\n'
-
-    output += '##[REDMINE]\n'
-    output += redmine(stop_date)
-    output += '\n\n'
-
-##ToDo:
-#    output = '##[MAILINGLISTE]\n'
-#    output += mail()
+#    output += blog()
 #    output += '\n\n'
+#
+#    output += '##[WIKI]\n'
+#    output += wiki(stop_date)
+#    output += '\n\n'
+#
+#    output += '##[REDMINE]\n'
+#    output += redmine(stop_date)
+#    output += '\n\n'
+
+    output += '##[MAILINGLISTE]\n'
+    output += mail(stop_date)
+    output += '\n\n'
 
     print(output)
 
-    pyperclip.copy(output)
+#    pyperclip.copy(output)
 
     #ToDo: write directly to etherpad
 
