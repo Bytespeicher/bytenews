@@ -73,7 +73,7 @@ def wiki():
             stub = output.rfind('*')
             output = output[:stub]
             continue
-        
+
         user = list(spans[2].stripped_strings)[0]
 
         output += date.strftime('%d %b') + ' ' + comment + ' ' + user
@@ -109,6 +109,13 @@ def wiki():
     return output
 
 
+def redmine():
+    ''' read redmine site to get tickets modified since last notizen '''
+
+    output = ""
+    return output
+
+
 def main():
 
 
@@ -120,15 +127,15 @@ def main():
     output += blog()
     output += '\n\n'
 
-    output = '##[WIKI]\n'
+    output += '##[WIKI]\n'
     output += wiki()
     output += '\n\n'
 
+    output += '##[REDMINE]\n'
+    output += redmine()
+    output += '\n\n'
+
 ##ToDo:
-#    output = '##[REDMINE]\n'
-#    output += redmine()
-#    output += '\n\n'
-#
 #    output = '##[MAILINGLISTE]\n'
 #    output += mail()
 #    output += '\n\n'
