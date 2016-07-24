@@ -184,12 +184,12 @@ def mail(stop_date):
 
     links = [a['href'] for a in fields]
     topics = [a.h5 for a in fields]
-    datestr = [list(a.div.stripped_strings)[0].replace('nachm.', '').replace('vorm.', '')[:-1] for a in fields]
+    datestr = [list(a.div.stripped_strings)[0].replace('nachm.', '').replace('vorm.', '')[:-1] + " 2016" for a in fields]
     
     pp.pprint(datestr)    
     locale.setlocale(locale.LC_TIME, 'deu_deu')
 
-    dates = [datetime.strptime(s, '%a %b %d, %H:%M') for s in datestr]
+    dates = [datetime.strptime(s, '%a %b %d, %H:%M %Y') for s in datestr]
     locale.setlocale(locale.LC_TIME, 'eng_us')
 
 #    pp.pprint([a if a else 'FAILFAILFAIL=======================================' for a in topics])
@@ -197,14 +197,12 @@ def mail(stop_date):
     all_mail = list(zip(links, topics, dates))
     
     for m in all_mail:
-#        output += "* " + m[1] + ': ' + m[3] + ' ' + m[2] + ' (' + m[4] + ', ' + m[5].strftime('%d %b') + ')\n'
-#        output += "https://redmine.bytespeicher.org" + m[0] + '\n'
         output += "* " + list(m[1].stripped_strings)[1] + '(' + m[2].strftime('%d %b') + ')\n'
         output += 'https://lists.bytespeicher.org' + m[0] + '\n'
-#        if TZ.localize(m[5]) < stop_date:
-#            stub = output.rfind('*')
-#            output = output[:stub]
-#            break
+        if TZ.localize(m[2]) < stop_date:
+            stub = output.rfind('*')
+            output = output[:stub]
+            break
     return(output)
 
 
