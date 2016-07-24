@@ -113,11 +113,35 @@ def redmine():
     ''' read redmine site to get tickets modified since last notizen '''
 
     output = ""
+    
+    website = requests.get("https://redmine.bytespeicher.org/projects/bytespeicher/issues?c%5B%5D=tracker&c%5B%5D=status&c%5B%5D=priority&c%5B%5D=subject&c%5B%5D=assigned_to&c%5B%5D=updated_on&f%5B%5D=&group_by=&set_filter=1&sort=updated_on%3Adesc%2Cid%3Adesc&utf8=%E2%9C%93")
+    html_source = website.text
+    soup = BeautifulSoup(html_source, 'lxml')
+    
+    t_list = soup.find('tbody')
+
+    links = [c['href'] for c in t_list.find_all('a')]
+    cat = [c.string for c in t_list.find_all("td", "tracker")]
+    stat = [c.string for c in t_list.find_all("td", "status")]
+    title = [c.a.string for c in t_list.find_all("td", "subject")]
+    user = [c.a.string if c.a else "" for c in t_list.find_all("td", "assigned_to")]
+    dates = [datetime.strptime(c.string, '%d.%m.%Y %H:%M') for c in t_list.find_all("td", "updated_on")]
+    
+    all_tickets = list(zip(links,cat, stat, title, user, dates))
+    
+    for t in all_tickets:
+        output += "* " + t[1] + ': ' + t[3] + ' ' + t[2] + ' (' + t[4] + ', ' + t[5].strftime('%d %b') + ')\n'
+        output += "https://redmine.bytespeicher.org" + t[0] + '\n\n'
+        if t[5] < LAST_NEWSLETTER:
+            stub = output.rfind('*')
+            output = output[:stub]
+            break
+#    pyperclip.copy(html_source)    
+    
     return output
 
 
 def main():
-
 
 #ToDo
 #    set last_newsletter from either command line argument or from reading blog history
