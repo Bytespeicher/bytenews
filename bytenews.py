@@ -10,8 +10,24 @@ import re
 from bs4 import BeautifulSoup
 import requests
 import pyperclip
+import pytz
 
-LAST_NEWSLETTER = datetime.strptime('01.01.2015', '%d.%m.%Y')
+
+TZ = pytz.timezone('Europe/Berlin')
+
+def getStopDate():
+    ''' reads the category feed for bytespeicher notizen and gets the last publication date '''  
+    
+    website = requests.get('https://bytespeicher.org/category/bytespeicher-notizen/feed/')
+    html_source = website.text
+    soup = BeautifulSoup(html_source, 'lxml-xml')
+    
+    datexml = soup.find('item').find('pubDate') 
+    
+    stop = datetime.strptime(datexml.string, '%a, %d %b %Y %H:%M:%S %z')
+    
+    return stop
+    
 
 def blog():
     ''' Reads feed from bytespeicher.org, extracts article titles,
@@ -39,7 +55,7 @@ def blog():
     return output
 
 
-def wiki():
+def wiki(stop_date):
     ''' Reads changes technikkultur-erfurt.de, extracts changes + comments,
     dates and links. Stops before date of last Bytespeicher Notizen.
     '''
@@ -63,7 +79,7 @@ def wiki():
         date_str = list(spans[0].stripped_strings)[0]
         date = datetime.strptime(date_str, '%d.%m.%Y %H:%M')
 
-        if date < LAST_NEWSLETTER:
+        if TZ.localize(date) < stop_date:
             stub = output.rfind('*')
             output = output[:stub]
             break
@@ -73,7 +89,7 @@ def wiki():
             stub = output.rfind('*')
             output = output[:stub]
             continue
-        
+
         user = list(spans[2].stripped_strings)[0]
 
         output += date.strftime('%d %b') + ' ' + comment + ' ' + user
@@ -109,26 +125,56 @@ def wiki():
     return output
 
 
+def redmine(stop_date):
+    ''' read redmine site to get tickets modified since last notizen '''
+
+    output = ""
+    
+    website = requests.get("https://redmine.bytespeicher.org/projects/bytespeicher/issues?c%5B%5D=tracker&c%5B%5D=status&c%5B%5D=priority&c%5B%5D=subject&c%5B%5D=assigned_to&c%5B%5D=updated_on&f%5B%5D=&group_by=&set_filter=1&sort=updated_on%3Adesc%2Cid%3Adesc&utf8=%E2%9C%93")
+    html_source = website.text
+    soup = BeautifulSoup(html_source, 'lxml')
+    
+    t_list = soup.find('tbody')
+
+    links = [c['href'] for c in t_list.find_all('a')]
+    cat = [c.string for c in t_list.find_all("td", "tracker")]
+    stat = [c.string for c in t_list.find_all("td", "status")]
+    title = [c.a.string for c in t_list.find_all("td", "subject")]
+    user = [c.a.string if c.a else "" for c in t_list.find_all("td", "assigned_to")]
+    dates = [datetime.strptime(c.string, '%d.%m.%Y %H:%M') for c in t_list.find_all("td", "updated_on")]
+    
+    all_tickets = list(zip(links,cat, stat, title, user, dates))
+    
+    for t in all_tickets:
+        output += "* " + t[1] + ': ' + t[3] + ' ' + t[2] + ' (' + t[4] + ', ' + t[5].strftime('%d %b') + ')\n'
+        output += "https://redmine.bytespeicher.org" + t[0] + '\n\n'
+        if TZ.localize(t[5]) < stop_date:
+            stub = output.rfind('*')
+            output = output[:stub]
+            break
+#    pyperclip.copy(html_source)    
+    
+    return output
+
+
 def main():
-
-
-#ToDo
-#    set last_newsletter from either command line argument or from reading blog history
+    
+    stop_date = getStopDate()
 
     ''' call all subfunctions to generate content '''
     output = '##[BLOG]\n'
     output += blog()
     output += '\n\n'
 
-    output = '##[WIKI]\n'
-    output += wiki()
+    output += '##[WIKI]\n'
+    output += wiki(stop_date)
+    output += '\n\n'
+
+    output += '##[REDMINE]\n'
+    output += redmine(stop_date)
     output += '\n\n'
 
 ##ToDo:
-#    output = '##[REDMINE]\n'
-#    output += redmine()
-#    output += '\n\n'
-#
 #    output = '##[MAILINGLISTE]\n'
 #    output += mail()
 #    output += '\n\n'
