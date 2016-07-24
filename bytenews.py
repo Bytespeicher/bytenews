@@ -79,7 +79,6 @@ def wiki(stop_date):
         
         output += link[0]['href']
 
-        linkdiff = item.find_all('a', 'diff_link')
         spans = item.find_all('span')
 
         output += " ("
@@ -105,10 +104,9 @@ def wiki(stop_date):
 
         output += 'https://technikkultur-erfurt.de/' + link[0]['href'] + '\n'
 
-#ToDo: sumarize als unreported changes into one difflink
+# get link to correct diff since last publication for reference
         diffwebsite = requests.get("https://technikkultur-erfurt.de/" + link[0]['href'] + '?do=revisions' )
         diffhtml_source = diffwebsite.text
-        print("https://technikkultur-erfurt.de/" + link[0]['href']  + '?do=revisions')
         
         pyperclip.copy(diffhtml_source)
         
@@ -118,7 +116,7 @@ def wiki(stop_date):
         difflink = ''
         for i, c in enumerate(changes):
             date = c.span.string
-            if datetime.strptime(date.strip(), '%d.%m.%Y %H:%M') < LAST_NEWSLETTER:
+            if TZ.localize(datetime.strptime(date.strip(), '%d.%m.%Y %H:%M')) < stop_date:
                 break
             if i != 0:
                 difflink = c.find('a', 'diff_link')['href']
@@ -216,16 +214,16 @@ def main():
 
     ''' call all subfunctions to generate content '''
     output = '##[BLOG]\n'
-#    output += blog()
-#    output += '\n\n'
-#
-#    output += '##[WIKI]\n'
-#    output += wiki(stop_date)
-#    output += '\n\n'
-#
-#    output += '##[REDMINE]\n'
-#    output += redmine(stop_date)
-#    output += '\n\n'
+    output += blog()
+    output += '\n\n'
+
+    output += '##[WIKI]\n'
+    output += wiki(stop_date)
+    output += '\n\n'
+
+    output += '##[REDMINE]\n'
+    output += redmine(stop_date)
+    output += '\n\n'
 
     output += '##[MAILINGLISTE]\n'
     output += mail(stop_date)
@@ -233,7 +231,7 @@ def main():
 
     print(output)
 
-#    pyperclip.copy(output)
+    pyperclip.copy(output)
 
     #ToDo: write directly to etherpad
 
