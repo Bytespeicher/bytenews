@@ -11,6 +11,26 @@ from bs4 import BeautifulSoup
 import requests
 import pyperclip
 
+import sys  
+from PyQt5.QtCore import QUrl  
+from PyQt5.QtWidgets import QApplication 
+from PyQt5.QtWebKitWidgets import QWebPage 
+#from lxml import html
+
+import dryscrape
+
+class Render(QWebPage):  
+  def __init__(self, url):  
+    self.app = QApplication(sys.argv)  
+    QWebPage.__init__(self)  
+    self.loadFinished.connect(self._loadFinished)  
+    self.mainFrame().load(QUrl(url))  
+    self.app.exec_()  
+  
+  def _loadFinished(self, result):  
+    self.frame = self.mainFrame()  
+    self.app.quit() 
+
 LAST_NEWSLETTER = datetime.strptime('01.01.2015', '%d.%m.%Y')
 
 def blog():
@@ -83,12 +103,33 @@ def wiki():
         output += 'https://technikkultur-erfurt.de/' + link[0]['href'] + '\n'
         output += 'DELETEME: ' + 'https://technikkultur-erfurt.de/' + linkdiff[0]['href'] + '\n\n'
 
-##ToDo: sumarize als unreported changes into one difflink
-#        diffwebsite = requests.get("https://technikkultur-erfurt.de/" + linkdiff[0]['href'])
-#        diffhtml_source = website.text
-#        diffsoup = BeautifulSoup(html_source, 'lxml')
+#ToDo: sumarize als unreported changes into one difflink
+        diffwebsite = requests.get("https://technikkultur-erfurt.de/link[0]['href']"  + '?do=revisions' )
+        diffhtml_source = diffwebsite.text
+        print("https://technikkultur-erfurt.de/" + linkdiff[0]['href'])
+        r = Render("https://technikkultur-erfurt.de/link[0]['href']"  + '?do=revisions' )  
+        #result is a QString.
+        result = r.frame.toHtml()
+#        #QString should be converted to string before processed by lxml
+#        diffhtml_source = str(result.toAscii())
+#        diffhtml_source = diffwebsite.text
+        
+        
+        session = dryscrape.Session()
+        session.visit("https://technikkultur-erfurt.de/link[0]['href']"  + '?do=revisions')
+        response = session.body()
+        pyperclip.copy(response)
+        
+        diffsoup = BeautifulSoup(result, 'lxml')
 
+        changes = diffsoup.find_all(name=r"rev2[0]" )
+        print(changes)
+        
+        date=datetime.strptime('05.01.2016 21:12', '%d.%m.%Y %H:%M')
+        print(date.timestamp())
+#        https://technikkultur-erfurt.de/projekte:bytespeicher_notizen:start?rev=1452024728&do=diff
 
+        break        
     #print(soup.body.contents)
     #print(soup.body.div.contents)
     #body.div.main.article.div.div.div.form.div.ul.li)
@@ -133,9 +174,9 @@ def main():
 #    output += mail()
 #    output += '\n\n'
 
-    print(output)
+#    print(output)
 
-    pyperclip.copy(output)
+#    pyperclip.copy(output)
 
     #ToDo: write directly to etherpad
 
