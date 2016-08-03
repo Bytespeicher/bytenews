@@ -156,6 +156,39 @@ def redmine(stop_date):
     return output
 
 
+def github(stop_date):
+    ''' read github atom feed for commit messages since last notizen'''
+    
+    url = "https://github.com/Bytespeicher/"
+    output = ""
+
+    website = requests.get(url)
+
+    html_source = website.text
+    soup = BeautifulSoup(html_source, 'lxml')
+
+    t_list = soup.find('body')
+
+    links = [c.a['href'] for c in t_list.find_all('h3', "repo-list-name")]
+#    cat = [c.string for c in t_list.find_all("td", "tracker")]
+#    stat = [c.string for c in t_list.find_all("td", "status")]
+    title = [c.a.string.strip() for c in t_list.find_all("h3", "repo-list-name")]
+#    user = [c.a.string if c.a else "" for c in t_list.find_all("td", "assigned_to")]
+#    print([c.find('relative-time')['datetime'] for c in t_list.find_all("p", "repo-list-meta")])
+    dates = [datetime.strptime(c.find('relative-time')['datetime'], '%Y-%m-%dT%H:%M:%SZ') for c in t_list.find_all("p", "repo-list-meta")]
+    all_tickets = list(zip(links, title, dates))
+
+    for t in all_tickets:
+        output += "* " + t[1] + ' (' + t[2].strftime('%d %b') + ')\n'
+        output += "https://github.org" + t[0] + '\n'
+        if TZ.localize(t[2]) < stop_date:
+            stub = output.rfind('*')
+            output = output[:stub]
+            break
+
+    return output
+    
+
 def is_not_more_tag(attr):
     ''' helper function to filter invalid mail item'''
     if attr == '#':
@@ -170,6 +203,7 @@ def mail(stop_date):
     output = ""
 
     website = requests.get("https://lists.bytespeicher.org/archives/list/bytespeicher%40lists.bytespeicher.org/")
+    
     soup = BeautifulSoup(website.text, 'lxml')
 
     section = soup.find('section', id='most-recent')
@@ -199,27 +233,35 @@ def mail(stop_date):
 def main():
     ''' call all subfunctions to generate content '''
 
-    stop_date = getStopDate()
-
-    output = '## [BLOG]\n'
-    output += blog()
+#    stop_date = getStopDate()
+    stop_date = TZ.localize(datetime.strptime("01.06.2016", '%d.%m.%Y'))    
+    print('Last Notizen: ' + stop_date.strftime('%d %b, %H:%M'))    
+    
+    output = ''
+#    output += '## [BLOG]\n'
+#    output += blog()
+#    output += '\n\n'
+#
+#    output += '## [WIKI]\n'
+#    output += wiki(stop_date)
+#    output += '\n\n'
+#
+#    output += '## [REDMINE]\n'
+#    output += redmine(stop_date)
+#    output += '\n\n'
+#
+#    output += '## [MAILINGLISTE]\n'
+#    output += mail(stop_date)
+#    output += '\n\n'
+#
+    output += '## [GITHUB]\n'
+    output += github(stop_date)
     output += '\n\n'
 
-    output += '## [WIKI]\n'
-    output += wiki(stop_date)
-    output += '\n\n'
-
-    output += '## [REDMINE]\n'
-    output += redmine(stop_date)
-    output += '\n\n'
-
-    output += '## [MAILINGLISTE]\n'
-    output += mail(stop_date)
-    output += '\n\n'
 
     print(output)
 
-    pyperclip.copy(output)
+#    pyperclip.copy(output)
 
     #ToDo: write directly to etherpad
 
