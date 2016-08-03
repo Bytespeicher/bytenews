@@ -120,7 +120,7 @@ def wiki(stop_date):
             if i != 0:
                 difflink = c.find('a', 'diff_link')['href']
 
-        output += 'DELETEME: ' + 'https://technikkultur-erfurt.de/'+ difflink +'\n\n'
+        output += 'DELETEME: ' + 'https://technikkultur-erfurt.de/'+ difflink +'\n'
 
     return output
 
@@ -201,19 +201,19 @@ def main():
 
     stop_date = getStopDate()
 
-    output = '##[BLOG]\n'
+    output = '## [BLOG]\n'
     output += blog()
     output += '\n\n'
 
-    output += '##[WIKI]\n'
+    output += '## [WIKI]\n'
     output += wiki(stop_date)
     output += '\n\n'
 
-    output += '##[REDMINE]\n'
+    output += '## [REDMINE]\n'
     output += redmine(stop_date)
     output += '\n\n'
 
-    output += '##[MAILINGLISTE]\n'
+    output += '## [MAILINGLISTE]\n'
     output += mail(stop_date)
     output += '\n\n'
 
