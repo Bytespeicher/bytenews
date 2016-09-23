@@ -75,7 +75,7 @@ def wiki(stop_date):
             output = output[:output.rfind('*')]
             continue
 
-        output += link[0]['href']
+        output += link[0]['href'].replace(':', ' ').replace(' ',': ',1).replace('/','').replace('_',' ').title()
 
         spans = item.find_all('span')
 
@@ -95,6 +95,8 @@ def wiki(stop_date):
             continue
 
         user = list(spans[2].stripped_strings)[0]
+        
+        comment = comment.replace(':', ' ').replace('/','').replace('_',' ').title()
 
         output += comment + ' ' + user
 
@@ -102,7 +104,7 @@ def wiki(stop_date):
 
         output += 'https://technikkultur-erfurt.de/' + link[0]['href'] + '\n'
  
-        output += getDiffLink(link[0], stop_date)
+        #output += getDiffLink(link[0], stop_date)
 
     return output
 
@@ -182,7 +184,7 @@ def github(stop_date):
 
     for t in all_tickets:
         output += "* " + t[1] + ' (' + t[2].strftime('%d %b') + ')\n'
-        output += "https://github.com" + t[0] + '\n'
+        output += "https://github." + t[0] + '\n'
 #        output += getCommitcomments("https://github.org" + t[0])
         if TZ.localize(t[2]) < stop_date:
             stub = output.rfind('*')
