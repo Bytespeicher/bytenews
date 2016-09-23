@@ -45,14 +45,14 @@ def blog():
         title = item.title.string
         date_str_long = item.pubDate.string
         link = item.link.string
-        if "Bytespeicher Wochennotizen" in title:
+        if "Bytespeicher Notizen" in title:
             break
         date = datetime.strptime(date_str_long, '%a, %d %b %Y %H:%M:%S %z')
 
         #print('* ' + title + ' ('+date.strftime('%d %b')+')')
         #print(link)
 
-        output += '* ' + title + ' ('+date.strftime('%d %b')+')\n'+link+'\n'
+        output += '* ' + title + '\n'+link+'\n'
 
     return output
 
@@ -75,7 +75,7 @@ def wiki(stop_date):
             output = output[:output.rfind('*')]
             continue
 
-        output += link[0]['href']
+        output += link[0]['href'].replace(':', ' ').replace(' ',': ',1).replace('/','').replace('_',' ').title()
 
         spans = item.find_all('span')
 
@@ -95,34 +95,38 @@ def wiki(stop_date):
             continue
 
         user = list(spans[2].stripped_strings)[0]
+        
+        comment = comment.replace(':', ' ').replace('/','').replace('_',' ').title()
 
-        output += date.strftime('%d %b') + ' ' + comment + ' ' + user
+        output += comment + ' ' + user
 
         output += ")\n"
 
         output += 'https://technikkultur-erfurt.de/' + link[0]['href'] + '\n'
-
-# get link to correct diff since last publication for reference
-        diffwebsite = requests.get("https://technikkultur-erfurt.de/" \
-                      + link[0]['href'] + '?do=revisions')
-        diffhtml_source = diffwebsite.text
-
-        pyperclip.copy(diffhtml_source)
-
-        diffsoup = BeautifulSoup(diffhtml_source, 'lxml')
-
-        changes = diffsoup.find_all('div', 'li')
-        difflink = ''
-        for i, c in enumerate(changes):
-            date = c.span.string
-            if TZ.localize(datetime.strptime(date.strip(), '%d.%m.%Y %H:%M')) < stop_date:
-                break
-            if i != 0:
-                difflink = c.find('a', 'diff_link')['href']
-
-        output += 'DELETEME: ' + 'https://technikkultur-erfurt.de/'+ difflink +'\n\n'
+ 
+        #output += getDiffLink(link[0], stop_date)
 
     return output
+
+
+def getDiffLink(main_link, stop_date):
+    '''get link to correct diff since last publication for reference'''
+    diffwebsite = requests.get("https://technikkultur-erfurt.de/" \
+    + main_link['href'] + '?do=revisions')
+    diffhtml_source = diffwebsite.text
+
+    diffsoup = BeautifulSoup(diffhtml_source, 'lxml')
+
+    changes = diffsoup.find_all('div', 'li')
+    difflink = ''
+    for i, c in enumerate(changes):
+        date = c.span.string
+        if TZ.localize(datetime.strptime(date.strip(), '%d.%m.%Y %H:%M')) < stop_date:
+            break
+        if i != 0:
+            difflink = c.find('a', 'diff_link')['href']
+
+    return('DELETEME: ' + 'https://technikkultur-erfurt.de/'+ difflink +'\n')
 
 
 def redmine(stop_date):
@@ -146,7 +150,7 @@ def redmine(stop_date):
     all_tickets = list(zip(links, cat, stat, title, user, dates))
 
     for t in all_tickets:
-        output += "* " + t[1] + ': ' + t[3] + ' ' + t[2] + ' (' + t[4] + ', ' + t[5].strftime('%d %b') + ')\n'
+        output += "* " + t[1] + ': ' + t[3] + ' ' + t[2] + ' (' + t[4] + ')\n'
         output += "https://redmine.bytespeicher.org" + t[0] + '\n'
         if TZ.localize(t[5]) < stop_date:
             stub = output.rfind('*')
@@ -155,6 +159,48 @@ def redmine(stop_date):
 
     return output
 
+
+def github(stop_date):
+    ''' read github atom feed for commit messages since last notizen'''
+    
+    url = "https://github.com/Bytespeicher/"
+    output = ""
+
+    website = requests.get(url)
+
+    html_source = website.text
+    soup = BeautifulSoup(html_source, 'lxml')
+
+    t_list = soup.find('body')
+
+    links = [c.a['href'] for c in t_list.find_all('h3', "repo-list-name")]
+#    cat = [c.string for c in t_list.find_all("td", "tracker")]
+#    stat = [c.string for c in t_list.find_all("td", "status")]
+    title = [c.a.string.strip() for c in t_list.find_all("h3", "repo-list-name")]
+#    user = [c.a.string if c.a else "" for c in t_list.find_all("td", "assigned_to")]
+#    print([c.find('relative-time')['datetime'] for c in t_list.find_all("p", "repo-list-meta")])
+    dates = [datetime.strptime(c.find('relative-time')['datetime'], '%Y-%m-%dT%H:%M:%SZ') for c in t_list.find_all("p", "repo-list-meta")]
+    all_tickets = list(zip(links, title, dates))
+
+    for t in all_tickets:
+        output += "* " + t[1] + ' (' + t[2].strftime('%d %b') + ')\n'
+        output += "https://github." + t[0] + '\n'
+#        output += getCommitcomments("https://github.org" + t[0])
+        if TZ.localize(t[2]) < stop_date:
+            stub = output.rfind('*')
+            output = output[:stub]
+            break
+        
+
+    return output
+ 
+
+def getCommitcomments(link):
+    output = ''
+    website = requests.get(link + "/commits/master")
+#    pyperclip.copy(website.text)
+    return output
+   
 
 def is_not_more_tag(attr):
     ''' helper function to filter invalid mail item'''
@@ -170,6 +216,7 @@ def mail(stop_date):
     output = ""
 
     website = requests.get("https://lists.bytespeicher.org/archives/list/bytespeicher%40lists.bytespeicher.org/")
+    
     soup = BeautifulSoup(website.text, 'lxml')
 
     section = soup.find('section', id='most-recent')
@@ -187,7 +234,7 @@ def mail(stop_date):
     all_mail = list(zip(links, topics, dates))
 
     for mline in all_mail:
-        output += "* " + list(mline[1].stripped_strings)[1] + '(' + mline[2].strftime('%d %b') + ')\n'
+        output += "* " + list(mline[1].stripped_strings)[1] + ' (' + mline[2].strftime('%d %b') + ')\n'
         output += 'https://lists.bytespeicher.org' + mline[0] + '\n'
         if TZ.localize(mline[2]) < stop_date:
             stub = output.rfind('*')
@@ -200,22 +247,30 @@ def main():
     ''' call all subfunctions to generate content '''
 
     stop_date = getStopDate()
-
-    output = '##[BLOG]\n'
+#    stop_date = TZ.localize(datetime.strptime("01.06.2016", '%d.%m.%Y'))    
+    print('Last Notizen: ' + stop_date.strftime('%d %b, %H:%M'))    
+    
+    output = ''
+    output += '## [BLOG]\n'
     output += blog()
     output += '\n\n'
 
-    output += '##[WIKI]\n'
+    output += '## [WIKI]\n'
     output += wiki(stop_date)
     output += '\n\n'
 
-    output += '##[REDMINE]\n'
+    output += '## [REDMINE]\n'
     output += redmine(stop_date)
     output += '\n\n'
 
-    output += '##[MAILINGLISTE]\n'
+    output += '## [MAILINGLISTE]\n'
     output += mail(stop_date)
     output += '\n\n'
+
+    output += '## [GITHUB]\n'
+    output += github(stop_date)
+    output += '\n\n'
+
 
     print(output)
 
