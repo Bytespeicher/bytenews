@@ -184,7 +184,7 @@ def github(stop_date):
 
     for t in all_tickets:
         output += "* " + t[1] + ' (' + t[2].strftime('%d %b') + ')\n'
-        output += "https://github." + t[0] + '\n'
+        output += "https://github.com" + t[0] + '\n'
 #        output += getCommitcomments("https://github.org" + t[0])
         if TZ.localize(t[2]) < stop_date:
             stub = output.rfind('*')
