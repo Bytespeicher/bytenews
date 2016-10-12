@@ -40,6 +40,16 @@ def blog():
     soup = BeautifulSoup(html_source, 'lxml-xml')
 
     items = soup.channel.find_all('item')
+    # Example XML found:
+    #<item>
+	#	<title>Einladung zur dritten Mitgliederversammlung 2016</title>
+	#	<link>https://bytespeicher.org/2016/einladung-zur-dritten-mitgliederversammlung-2016/</link>
+	#	<comments>https://bytespeicher.org/2016/einladung-zur-dritten-mitgliederversammlung-2016/#respond</comments>
+	#	<pubDate>Tue, 11 Oct 2016 18:32:50 +0000</pubDate>
+	#	<dc:creator><![CDATA[Bernd]]></dc:creator>
+	#			<category><![CDATA[Veranstaltung]]></category>
+	#	<category><![CDATA[mitgliederversammlung]]></category>
+	#	<category><![CDATA[plenum]]></category>
     output = ""
     for item in items:
         title = item.title.string
@@ -65,6 +75,25 @@ def wiki(stop_date):
     soup = BeautifulSoup(website.text, 'lxml')
 
     items = soup.find_all('form')[1].find_all('li')
+    # example HTML:
+    #<li >
+    #    <div class="li">
+    #    <img src="/lib/images/fileicons/file.png" alt="projekte:elektronik_tipps" class="icon" /><span class="date">
+    #    11.10.2016 22:54</span>
+    #    <a class="diff_link" href="/projekte:elektronik_tipps?do=diff">
+    #    <img src="/lib/images/diff.png" width="15" height="11" title="Zeige Unterschiede zu aktueller Version" alt="Zeige Unterschiede zu aktueller Version"/>
+    #    </a>
+    #    <a class="revisions_link" href="/projekte:elektronik_tipps?do=revisions">
+    #    <img src="/lib/images/history.png" width="12" height="14" title="Ältere Versionen" alt="Ältere Versionen"/>
+    #    </a>
+    #    <a href="/projekte:elektronik_tipps" class="wikilink1" title="projekte:elektronik_tipps">projekte:elektronik_tipps</a><span class="sum">
+    #     – </span>
+    #    <span class="user">
+    #    <bdi>petrk</bdi></span>
+    #    <span class="sizechange positive label label-success">
+    #    +266 B</span>
+    #    </div>
+    #</li>
     output = ''
 
     for item in items:
@@ -139,7 +168,14 @@ def redmine(stop_date):
     soup = BeautifulSoup(html_source, 'lxml')
 
     t_list = soup.find('tbody')
-
+    # Example HTML:
+    #<tbody>
+    #  <tr id="issue-213" class="hascontextmenu odd issue tracker-1 status-7 priority-2 priority-default created-by-me ">
+    #    <td class="checkbox hide-when-print"><input name="ids[]" type="checkbox" value="213" /></td>
+    #    <td class="id"><a href="/issues/213">213</a></td><td class="tracker">Fehler</td><td class="status">Bearbeitung unterbrochen</td><td class="priority">Normal</td><td class="subject"><a href="/issues/213">Eventliste im Wiki synct nicht mehr mit dem Google Kalender</a></td><td class="assigned_to"><a href="/users/4" class="user active">Marcel Pennewiß</a></td><td class="updated_on">12/10/2016 08:18 AM</td>
+    #  </tr
+    # [...]
+    
     links = [c['href'] for c in t_list.find_all('a')]
     cat = [c.string for c in t_list.find_all("td", "tracker")]
     stat = [c.string for c in t_list.find_all("td", "status")]
